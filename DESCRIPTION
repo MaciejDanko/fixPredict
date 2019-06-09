@@ -1,0 +1,26 @@
+Package: fixPredict
+Type: Package
+Title: Unbiased predictions for fixed terms
+Version: 0.0.1
+Depends: R (>= 3.4.0)
+Imports: gamm4, mgcv, grDevices, lme4, MASS, stats
+Authors@R: person("Maciej J.", "Danko", role = c("aut", "cre"), 
+ email = "Maciej.Danko@gmail.com", comment = c(ORCID = "0000-0002-7924-9022"))
+Description: Perform predictions on fixed terms.
+License: GPL-3
+Encoding: UTF-8
+LazyData: TRUE
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 6.1.1
+SystemRequirements: C++11
+Suggests: 
+    knitr,
+    Rdpack,
+    rmarkdown,
+    roxygen2,
+    pander,
+    testthat,
+    usethis,
+    R.rsp
+VignetteBuilder: R.rsp
+RdMacros: Rdpack

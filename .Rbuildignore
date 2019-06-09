@@ -1,0 +1,12 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^LICENSE$
+^.git$
+^\.travis\.yml$
+^old$
+^.Rhistory$
+^inst\doc$
+^appveyor\.yml$
+^cran-comments.md
+^paper$
+^data_test2.R$
