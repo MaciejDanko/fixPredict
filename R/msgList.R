@@ -24,7 +24,10 @@ msgList <- function(x) {
           'Missing variable(s) in newdata: ',#21
           '.\n Add missing variables or set average.missing = TRUE.', #22
           '"as.rate = TRUE" only makes sense when link function is "log".', #23 
-          'The fitted random effect formula is currently not supported in the bootstrap computations.' #24
+          'The fitted random effect formula is currently not supported in the bootstrap computations.', #24
+          'Bootstrapping random effects is supported only for merMod objects (lme4 package).', #25
+          'The conditional variance cannot be retrived from the model.', #26
+          'Bootstrapping random effects is currently not supported for gam objects (gamm4 package).' #27
           )
   tmp[x]
 }

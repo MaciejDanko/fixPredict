@@ -67,17 +67,17 @@ renameIntlev<-function(Vnam,Lnam){
 
 #' @noRd
 #' @keywords internal
-getRE.lme4 <- function(object, RElist = ranef(object)){
+getRE.lme4 <- function(object, RElist = ranef(object), frame = object@frame){
   tmpRE <- lapply(names(ngrps(object)), function(j) {
     REmean <- as.matrix(RElist[[j]])
-    dat <- model.matrix(object, data = object@frame)
+    dat <- model.matrix(object, data = frame)
     datm <- dat[,colnames(dat) %in% colnames(REmean), drop=FALSE]
     tmpw <- which(!colnames(REmean) %in% colnames(datm))
     if (length(tmpw)) stop(msgList(24))
     datm <- datm[,colnames(REmean)]
     rownames(REmean) <- unname(renameIntlev(j,rownames(REmean)))
     reform <- as.formula(paste('~',j,'-1'))
-    MM <- model.matrix(reform, data = object@frame)
+    MM <- model.matrix(reform, data = frame)
     MM <- MM[ ,rownames(REmean)]
     if (length(colnames(MM)) != length(rownames(REmean))) stop (msgList(17))
     if (any(colnames(MM) != rownames(REmean))) stop (msgList(17))
@@ -93,7 +93,7 @@ getRE.lme4 <- function(object, RElist = ranef(object)){
 
 #' @noRd
 #' @keywords internal
-simRE.lme4<-function(n.sims, object){
+simRE.lme4<-function(n.sims, object, frame = object@frame){
   RElist = ranef(object, condVar = TRUE)
   REnames <- names(ngrps(object))
   # j = REnames[2]
@@ -101,7 +101,7 @@ simRE.lme4<-function(n.sims, object){
     REcv <- RElist[[j]] 
     REvariance <- attr(REcv, which = "condVar")
     if (!length(REvariance)) REvariance <- attr(REcv, which = "postVar") else
-      stop('Conditional variance cannot be retrived from the model.')
+      stop(msgList(26),call. = FALSE)
     REmean <- as.matrix(REcv)
     rm(REcv)
     
@@ -138,7 +138,7 @@ simRE.lme4<-function(n.sims, object){
     names(g)<-REnames
     g
   })
-  sapply(REsim, function(j) as.matrix(getRE.lme4(RElist=j, object=object)))
+  sapply(REsim, function(j) as.matrix(getRE.lme4(RElist=j, object=object, frame=frame)))
 }
 
 #' All \%in\% function
@@ -245,6 +245,7 @@ proc.nlme<-function(object){
   }
   lformula<-length(oformula)
   theta <-NULL
+  simRE <- function(...) stop(msgList(25), call. = FALSE)
   get.avg.missing <- function(object, newdata, coef=object$coefficients$fixed) 
     .get.avg.missing(object, newdata, coef)
   get.miss.vars <- .get.miss.vars
@@ -266,6 +267,7 @@ proc.nlme<-function(object){
        lformula = lformula,
        pred.vars = pred.vars,
        predFix = predFix,
+       simRE = simRE,
        get.avg.missing = get.avg.missing,
        get.miss.vars = get.miss.vars, 
        getMM = getMM)
@@ -329,6 +331,7 @@ proc.gamm<-function(object){
                           type='link', se.fit=FALSE) + .offset
       }
     }
+    simRE <- function(...) stop(msgList(25), call. = FALSE)
     get.avg.missing <- function(...) stop(msgList(3),call. = FALSE)
     get.miss.vars <- function(object, newdata) 
       .get.miss.vars(object$gam, newdata)
@@ -352,6 +355,7 @@ proc.gamm<-function(object){
          lformula = lformula,
          pred.vars = pred.vars,
          predFix = predFix,
+         simRE = simRE,
          get.avg.missing = get.avg.missing,
          get.miss.vars = get.miss.vars, 
          getMM = getMM)
@@ -412,6 +416,7 @@ proc.gam <- function(object){
                         type='link', se.fit=FALSE) + .offset
     }
   }
+  simRE <- function(...) stop(msgList(25), call. = FALSE)
   get.avg.missing <- function(...) stop(msgList(3),call. = FALSE)
   get.miss.vars <- function(object, newdata) 
     .get.miss.vars(object, newdata)
@@ -435,6 +440,7 @@ proc.gam <- function(object){
        lformula = lformula,
        pred.vars = pred.vars,
        predFix = predFix,
+       simRE = simRE,
        get.avg.missing = get.avg.missing,
        get.miss.vars = get.miss.vars, 
        getMM = getMM)
@@ -503,6 +509,7 @@ proc.gamm4<-function(object){
   }
   lformula<-length(mgcv::formula.gam(object$gam))
   theta<-object$mer@theta
+  simRE <- function(...) stop(msgList(27), call. = FALSE)
   get.avg.missing <- function(...) stop(msgList(8),call. = FALSE)
   get.miss.vars <- function(object, newdata) 
     .get.miss.vars(object$gam, newdata)
@@ -525,6 +532,7 @@ proc.gamm4<-function(object){
        lformula = lformula,
        pred.vars = pred.vars,
        predFix = predFix,
+       simRE = simRE,
        get.avg.missing = get.avg.missing,
        get.miss.vars = get.miss.vars, 
        getMM = getMM)
@@ -583,6 +591,7 @@ proc.lme4<-function(object){
              function(k) as.vector(MM%*%betas[k,] + .offset))
     } else MM%*%betas + .offset
   }
+  simRE <- simRE.lme4
   lformula<-length(object@call$formula)
   get.avg.missing <- function(object, newdata, coef=fixef(object)) 
     .get.avg.missing(object, newdata, coef)
@@ -605,6 +614,7 @@ proc.lme4<-function(object){
        lformula = lformula,
        pred.vars = pred.vars,
        predFix = predFix,
+       simRE = simRE,
        get.avg.missing = get.avg.missing,
        get.miss.vars = get.miss.vars, 
        getMM = getMM)
@@ -663,6 +673,7 @@ proc.glmnb<-function(object){
   }
   lformula<-length(stats::formula(object))
   theta<-NULL
+  simRE <- function(...) stop(msgList(25), call. = FALSE)
   get.avg.missing <- function(object, newdata, coefi=stats::coef(object)) 
     .get.avg.missing(object, newdata, coefi)
   get.miss.vars <- .get.miss.vars
@@ -684,6 +695,7 @@ proc.glmnb<-function(object){
        lformula = lformula,
        pred.vars = pred.vars,
        predFix = predFix,
+       simRE = simRE,
        get.avg.missing = get.avg.missing,
        get.miss.vars = get.miss.vars, 
        getMM = getMM)
@@ -771,9 +783,9 @@ collect.model.info<-function(object){
 #' @noRd
 #' @keywords internal
 .fixmiss<-function(fixmiss, object, objsup, betas, 
-                       newdata, boot.missing, method){
+                       newdata, sim.missing, method){
   n<-nrow(betas)
-  if (boot.missing) {
+  if (sim.missing) {
     if (method == 'at.each.cat') {
       nd <- newdata 
     } else if (method == 'overall') {
@@ -794,128 +806,119 @@ collect.model.info<-function(object){
       sdata_codes <- apply(sdata, 1, paste, collapse='_', sep='_')
     } 
     if (length(nd)) {
-      gg<-lapply(seq_len(n), function(j) {
-        z <- objsup$get.avg.missing(object, newdata, as.vector(betas[j,]))
+      gg <- lapply(seq_len(n), function(j) {
+        z <- objsup$get.avg.missing(object, newdata, 
+                                    as.vector(betas[j,]))
         lapply(nd_codes,function(k) z$diff[which(sdata_codes==k)])
       })
     } else {
-      gg<-lapply(seq_len(n), function(j) 
-        list(objsup$get.avg.missing(object, newdata, as.vector(betas[j,]))$diff))
+      gg <- lapply(seq_len(n), function(j) 
+        list(objsup$get.avg.missing(object, newdata, 
+                                    as.vector(betas[j,]))$diff))
     }
-    fixmissFunc<-gg #function(k) gg[[k]]
-  } else fixmissFunc<-list(fixmiss) #<-function(k) fixmiss   
+    fixmissFunc <- gg #function(k) gg[[k]]
+  } else fixmissFunc <- list(fixmiss) #<-function(k) fixmiss   
   fixmissFunc
+}
+
+
+#' @noRd
+#' @keywords internal
+.reff <- function(reff, object, objsup, n, newdata, sim.RE, method){
+  if (sim.RE) {
+    if (method == 'at.each.cat') {
+      nd <- newdata 
+    } else if (method == 'overall') {
+      nd <- NULL 
+    } else stop(msgList(16), call. = FALSE)
+    
+    if (length(nd)){
+      indc <- which(colnames(nd) %in% objsup$categorical)
+      nd <- droplevels.data.frame(nd[,indc,drop = FALSE])
+    }
+    if (length(nd)) {
+      data <- objsup$frame
+      data <- data[, colnames(data) %in% colnames(nd),drop = FALSE]
+      colind <- match(colnames(nd),colnames(data))
+      nd_codes <- apply(nd, 1, paste, collapse='_', sep='_')
+      sdata <- data[,colind,drop=FALSE]
+      sdata_codes <- apply(sdata, 1, paste, collapse='_', sep='_')
+    } 
+    
+    REsim <- objsup$simRE(n, object)
+    
+    if (length(nd)) {
+      gg <- lapply(seq_len(n), function(j) 
+        lapply(nd_codes,function(k) REsim[which(sdata_codes==k) ,j]))
+    } else {
+      gg <- lapply(seq_len(n), function(j) list(REsim[,j]))
+    }
+    REFunc <- gg 
+  } else REFunc <- list(reff) #<-function(k) fixmiss   
+  REFunc
 }
 
 #' @noRd
 #' @keywords internal
 .make.predictions<-function(object, objsup, betas, newdata, MM, coffs, as.rate,
-                            reff, fixmiss, linkinv, linkfun, boot.missing, method){
-  
-  
-  fixmiss <- .fixmiss(fixmiss, object, objsup, betas, 
-           newdata, boot.missing, method)
-  
-  fixmissFunc<-function(n,k) {
-    tmp <- if (length(fixmiss)==1) fixmiss[[1]] else fixmiss[[n]]
-    if (length(tmp)==1) tmp[[1]] else
-      if (length(tmp)>1) tmp[[k]] else 0
-  }
-  
-  reffFunc <- function(k) if (length(reff)==1) reff[[1]] else
-    if (length(reff)>1) reff[[k]] else 0
-  
-  offsetFunc<-function(k) if (length(coffs)==1) coffs[[1]] else
-    if (length(coffs)>1) coffs[[k]] else 0
-  
-  cexpo <- if (as.rate) {
-    if (length(coffs)==1) list(linkinv(coffs[[1]])) else
-    if (length(coffs)>1) lapply(coffs, linkinv) else list(1)
-  } else list(1)
-  
-  exposuresFunc<-function(k) if (length(cexpo)>1) cexpo[[k]] else cexpo[[1]]
+                            reff, fixmiss, linkinv, linkfun, sim.missing, 
+                            method, sim.RE){
   
   n<-nrow(betas)
+  
+  fixmiss <- .fixmiss(fixmiss, object, objsup, betas, 
+           newdata, sim.missing, method)
+  
+  reff <- .reff(reff, object, objsup, n, newdata, sim.RE, method)
+  
+  fixmissFunc <- function(n,k) {
+    tmp <- if (length(fixmiss) == 1) fixmiss[[1]] else fixmiss[[n]]
+    if (length(tmp) == 1) tmp[[1]] else
+      if (length(tmp) > 1) tmp[[k]] else 0
+  }
+  
+  reffFunc <- function(n, k) {
+    tmp <- if (length(reff) == 1) reff[[1]] else reff[[n]]
+    if (length(tmp) == 1) tmp[[1]] else
+      if (length(tmp) > 1) tmp[[k]] else 0
+  }
+  
+  # reffFunc <- function(k) if (length(reff)==1) reff[[1]] else
+  #   if (length(reff)>1) reff[[k]] else 0
+  
+  offsetFunc <- function(k) if (length(coffs) == 1) coffs[[1]] else
+    if (length(coffs) >1 ) coffs[[k]] else 0
+  
+  cexpo <- if (as.rate) {
+    if (length(coffs) == 1) list(linkinv(coffs[[1]])) else
+    if (length(coffs) > 1) lapply(coffs, linkinv) else list(1)
+  } else list(1)
+  
+  exposuresFunc<-function(k) if (length(cexpo) > 1) cexpo[[k]] else cexpo[[1]]
+  
   pred_fixed_base <- sapply(seq_len(n),function(j) 
-    objsup$predFix(object, as.vector(betas[j,]), newdata, MM, 0))
+    objsup$predFix(object, as.vector(betas[j, ]), newdata, MM, 0))
   
   K <- seq_len(nrow(pred_fixed_base))
   J <- seq_len(n)
   
   pred_fixed_biased <- sapply(J, function(j) 
-    sapply(K, function(k) mean(linkinv(fixmissFunc(j,k) + pred_fixed_base[k,j] + offsetFunc(k)))/ mean(exposuresFunc(k))))
+    sapply(K, function(k) 
+      mean(linkinv(fixmissFunc(j, k) + 
+                     pred_fixed_base[k, j] + 
+                     offsetFunc(k))) / mean(exposuresFunc(k))))
   
   pred_fixed_unbiased <- sapply(J, function(j) 
-    sapply(K, function(k) mean(linkinv(reffFunc(k) + fixmissFunc(j,k) + pred_fixed_base[k,j] + offsetFunc(k)))/ mean(exposuresFunc(k))))
+    sapply(K, function(k) 
+      mean(linkinv(reffFunc(j, k) + 
+                     fixmissFunc(j, k) + 
+                     pred_fixed_base[k, j] + 
+                     offsetFunc(k)))/ mean(exposuresFunc(k))))
   
   list(biased = pred_fixed_biased,
        unbiased = pred_fixed_unbiased)
-  
 } 
   
-# 
-#   
-#   if (length(fixmiss)) {
-#     pred_fixed_biased <- sapply(seq_len(n), 
-#       function(j) sapply(seq_along(fixmiss),
-#         function(k) mean(linkinv(fixmissFunc(j)[[k]] + pred_fixed_base[k,j]))))
-#   } else pred_fixed_biased <- linkinv(pred_fixed_base)
-#   
-#   if (length(reff)>1) {
-#     if (length(fixmiss)>1) {
-#       if (length(fixmiss)!=length(reff)) stop(msgList(17))
-#       pred_fixed_unbiased <- sapply(seq_len(n), 
-#         function(j) sapply(seq_along(reff),
-#           function(k) mean(linkinv(reff[[k]] + fixmissFunc(j)[[k]] + 
-#                                      pred_fixed_base[k,j]))))
-#     } else if (!length(fixmiss)) {
-#       pred_fixed_unbiased <- sapply(seq_len(n), 
-#         function(j) sapply(seq_along(reff),
-#           function(k) mean(linkinv(reff[[k]] + pred_fixed_base[k,j]))))
-#     } else if (length(fixmiss)) {
-#       pred_fixed_unbiased <- sapply(seq_len(n), 
-#         function(j) sapply(seq_along(reff),
-#           function(k) mean(linkinv(reff[[k]] + fixmissFunc(j)[[1]] + 
-#                                      pred_fixed_base[k,j])))) 
-#     }
-#   } else if (length(fixmiss)>1) {
-#     if (!length(reff)) {
-#       pred_fixed_unbiased <- sapply(seq_len(n), 
-#         function(j) sapply(seq_along(fixmiss),
-#           function(k) mean(linkinv(fixmissFunc(j)[[k]] + 
-#                                      pred_fixed_base[k,j]))))
-#     } else if (length(reff)) {
-#       pred_fixed_unbiased <- sapply(seq_len(n), 
-#         function(j) sapply(seq_along(fixmiss),
-#           function(k) mean(linkinv(reff[[1]] + fixmissFunc(j)[[k]] + 
-#                                      pred_fixed_base[k,j]))))
-#     }
-#   } else {
-#     if (length(fixmiss)  && length(reff)) {
-#       pred_fixed_unbiased <- sapply(seq_len(n), 
-#         function(j) sapply(seq_len(nrow(pred_fixed_biased)),
-#           function(k) mean(linkinv(reff[[1]] + fixmissFunc(j)[[1]] + 
-#                                      pred_fixed_base[k,j]))))
-#     } else if (!length(fixmiss)  && length(reff)) {
-#       pred_fixed_unbiased <- sapply(seq_len(n), 
-#         function(j) sapply(seq_len(nrow(pred_fixed_biased)),
-#           function(k) mean(linkinv(reff[[1]] + 
-#                                      pred_fixed_base[k,j]))))
-#     } else if (length(fixmiss)  && !length(reff)) {
-#       pred_fixed_unbiased <- sapply(seq_len(n), 
-#         function(j) sapply(seq_len(nrow(pred_fixed_biased)),
-#           function(k) mean(linkinv(fixmissFunc(j)[[1]] + 
-#                                      pred_fixed_base[k,j]))))
-#     } else pred_fixed_unbiased <- pred_fixed_biased
-#   }
-#   if (n==1)
-#     dim(pred_fixed_biased) <- dim(pred_fixed_unbiased) <- 
-#       dim(pred_fixed_base) <- NULL
-#   
-#   list(biased = pred_fixed_biased,
-#        unbiased = pred_fixed_unbiased)
-# }
-
 #' Unbiased predictions for fixed variables
 #'
 #' @param object a object of class inherited from: \code{\link{glmer}{lme4}}, 
@@ -926,9 +929,10 @@ collect.model.info<-function(object){
 #' The default is on the scale of the linear predictors; the alternative "response" is on the scale of the response variable. 
 #' see also \code{\link{predict.glm}{stats}}.
 #' @param ci.fit a logical indicting if to bootstrap percentile confidence intervals.
-#' @param alpha,n.sim a significance level and a number of repetitions for the bootstrap method.
+#' @param alpha,n.sims a significance level and a number of repetitions for the bootstrap method.
 #' @param average.missing a logical indicating if to perform population averaging over the variables missing from the \code{newdata}.
-#' @param boot.missing a logical indicating if to include missing variables into the bootstrap method. Miningfull when \code{average.missing} is \code{TRUE}.
+#' @param sim.missing a logical indicating if to simulate uncertenity of the missing variables via the bootstrap method. Miningfull only when \code{average.missing} is \code{TRUE}.
+#' @param sim.RE a logical indicating if to simulate uncertenity of the random effects via the bootstrap method. 
 #' @param method a method of averaging over random effects. 
 #' The default "\code{at.each.cat}" estimate avarage random effects at each cobination of levels for categorical variable(s) present in the \code{newdata}; 
 #' the alternative "\code{overall}" estimate average random effects for total population.
@@ -1105,9 +1109,10 @@ fixPredict<-function(object,
                      type = c('link','response'),
                      ci.fit = TRUE,
                      alpha = 0.95,
-                     n.sim = 1e3,
+                     n.sims = 1e3,
                      average.missing = FALSE, 
-                     boot.missing = TRUE,
+                     sim.missing = TRUE,
+                     sim.RE = FALSE,
                      method = c('at.each.cat','overall'),
                      use.offset = TRUE,
                      as.rate = FALSE, 
@@ -1126,7 +1131,7 @@ fixPredict<-function(object,
     newdata <- .rebuild.newdata(objsup, newdata)
   if (!length(objsup$get.miss.vars(object, newdata))){
     average.missing <- FALSE
-    boot.missing <- FALSE
+    sim.missing <- FALSE
   }
   
   if (type=='link') {
@@ -1209,13 +1214,13 @@ fixPredict<-function(object,
   
   betas <- t(as.matrix(objsup$fixed)) 
   fit <- .make.predictions(object, objsup, betas, newdata, MM, coffs, as.rate, 
-                           reff, fixmiss, linkinv, linkfun, FALSE, method)
+                           reff, fixmiss, linkinv, linkfun, FALSE, method, sim.RE)
   
-  if (ci.fit && (n.sim>1)){
-    betas <- MASS::mvrnorm(n = n.sim, mu = objsup$fixed, Sigma = objsup$varcov)
+  if (ci.fit && (n.sims>1)){
+    betas <- MASS::mvrnorm(n = n.sims, mu = objsup$fixed, Sigma = objsup$varcov)
     fitCI <- .make.predictions(object, objsup, betas, newdata, MM, coffs, 
                                as.rate, reff, fixmiss, linkinv, linkfun, 
-                               boot.missing & average.missing, method)    
+                               sim.missing & average.missing, method, sim.RE)    
     
     if (return.median) {
       CI_fixed_biased <- t(apply(fitCI$biased, 1, stats::quantile, 
@@ -1240,9 +1245,9 @@ fixPredict<-function(object,
               flags = list(type = type,
                            ci.fit = ci.fit,
                            alpha = alpha,
-                           n.sim = n.sim,
+                           n.sims = n.sims,
                            average.missing = average.missing, 
-                           boot.missing = boot.missing,
+                           sim.missing = sim.missing,
                            method = method,
                            use.offset = use.offset,
                            as.rate = as.rate, 

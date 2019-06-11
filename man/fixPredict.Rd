@@ -5,8 +5,8 @@
 \title{Unbiased predictions for fixed variables}
 \usage{
 fixPredict(object, newdata, type = c("link", "response"),
-  ci.fit = TRUE, alpha = 0.95, n.sim = 1000,
-  average.missing = FALSE, boot.missing = TRUE,
+  ci.fit = TRUE, alpha = 0.95, n.sims = 1000,
+  average.missing = FALSE, sim.missing = TRUE, sim.RE = FALSE,
   method = c("at.each.cat", "overall"), use.offset = TRUE,
   as.rate = FALSE, return.median = FALSE, return.boot = FALSE)
 }
@@ -23,11 +23,13 @@ see also \code{\link{predict.glm}{stats}}.}
 
 \item{ci.fit}{a logical indicting if to bootstrap percentile confidence intervals.}
 
-\item{alpha, n.sim}{a significance level and a number of repetitions for the bootstrap method.}
+\item{alpha, n.sims}{a significance level and a number of repetitions for the bootstrap method.}
 
 \item{average.missing}{a logical indicating if to perform population averaging over the variables missing from the \code{newdata}.}
 
-\item{boot.missing}{a logical indicating if to include missing variables into the bootstrap method. Miningfull when \code{average.missing} is \code{TRUE}.}
+\item{sim.missing}{a logical indicating if to simulate uncertenity of the missing variables via the bootstrap method. Miningfull only when \code{average.missing} is \code{TRUE}.}
+
+\item{sim.RE}{a logical indicating if to simulate uncertenity of the random effects via the bootstrap method.}
 
 \item{method}{a method of averaging over random effects.
 The default "\code{at.each.cat}" estimate avarage random effects at each cobination of levels for categorical variable(s) present in the \code{newdata};
