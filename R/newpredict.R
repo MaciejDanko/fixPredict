@@ -53,6 +53,94 @@ deinteract<-function(n) {
   res
 }
 
+#' @noRd
+#' @keywords internal
+renameIntlev<-function(Vnam,Lnam){
+  if (grepl(':',Vnam,fixed = TRUE)) {
+    t1<-unname(unlist(deinteract(Vnam)))
+    t2<-deinteract(Lnam)
+    apply(sapply(t2, function(k) paste(t1,k,sep='')),2,paste,collapse=':')
+  } else {
+    paste(Vnam,Lnam,sep='')
+  }
+}
+
+#' @noRd
+#' @keywords internal
+getRE.lme4 <- function(object, RElist = ranef(object)){
+  tmpRE <- lapply(names(ngrps(object)), function(j) {
+    REmean <- as.matrix(RElist[[j]])
+    dat <- model.matrix(object, data = object@frame)
+    datm <- dat[,colnames(dat) %in% colnames(REmean), drop=FALSE]
+    tmpw <- which(!colnames(REmean) %in% colnames(datm))
+    if (length(tmpw)) stop(msgList(24))
+    datm <- datm[,colnames(REmean)]
+    rownames(REmean) <- unname(renameIntlev(j,rownames(REmean)))
+    reform <- as.formula(paste('~',j,'-1'))
+    MM <- model.matrix(reform, data = object@frame)
+    MM <- MM[ ,rownames(REmean)]
+    if (length(colnames(MM)) != length(rownames(REmean))) stop (msgList(17))
+    if (any(colnames(MM) != rownames(REmean))) stop (msgList(17))
+    pred1 <- MM %*% REmean
+    if (any(dim(datm) != dim(pred1))) stop (msgList(17))
+    pred2 <- datm * pred1
+    rowSums(pred2)
+  })
+  sumRE <- 0
+  for (k in seq_along(tmpRE)) sumRE <- sumRE + tmpRE[[k]]
+  sumRE
+}
+
+#' @noRd
+#' @keywords internal
+simRE.lme4<-function(n.sims, object){
+  RElist = ranef(object, condVar = TRUE)
+  REnames <- names(ngrps(object))
+  # j = REnames[2]
+  tmpREv <- lapply(REnames, function(j) {
+    REcv <- RElist[[j]] 
+    REvariance <- attr(REcv, which = "condVar")
+    if (!length(REvariance)) REvariance <- attr(REcv, which = "postVar") else
+      stop('Conditional variance cannot be retrived from the model.')
+    REmean <- as.matrix(REcv)
+    rm(REcv)
+    
+    if (ncol(REmean)>1) {
+      newMeans <- lapply(seq_len(nrow(REmean)), 
+                         function(k) as.matrix(mvtnorm::rmvnorm(
+                           n = n.sims, 
+                           mean = REmean[k,], 
+                           sigma = REvariance[,,k], 
+                           method = "chol")))
+    } else {
+      newMeans <- lapply(seq_len(nrow(REmean)), 
+                         function(k) as.matrix(stats::rnorm(
+                           n = n.sims,
+                           mean = REmean[k,],
+                           sd = sqrt(REvariance[,,k])
+                         )))
+    }
+    
+    newMeans <- array(as.numeric(unlist(newMeans)), dim=c(n.sims, ncol(REmean), nrow(REmean)))
+    dim(newMeans)<-c(n.sims, ncol(REmean), nrow(REmean))
+    dimnames(newMeans) <- list(seq_len(n.sims),colnames(REmean),rownames(REmean))
+    newMeans
+  })  
+  
+  REsim<-lapply(seq_len(n.sims), function(k) {
+    g <- lapply(seq_along(REnames), function(j) {
+      raw <- tmpREv[[j]][k,,,drop=FALSE]
+      z <- tmpREv[[j]][k,,]
+      dim(z) <- dim(raw)[-1]
+      dimnames(z) <- dimnames(raw)[-1]
+      t(z)
+    })
+    names(g)<-REnames
+    g
+  })
+  sapply(REsim, function(j) as.matrix(getRE.lme4(RElist=j, object=object)))
+}
+
 #' All \%in\% function
 #'
 #' @param x,y numeric vectors
@@ -75,10 +163,6 @@ get.import.var.lv<-function(object, newdata){
 
 #' @noRd
 #' @keywords internal
-# @importFrom stats delete.response
-# @importFrom stats terms
-# @importFrom stats model.matrix
-# @importFrom stats model.frame
 #' @import stats
 .get.avg.missing<-function(object, newdata, coefi){
   import <- get.import.var.lv(object, newdata)
