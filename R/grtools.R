@@ -12,7 +12,7 @@
 #' @param ... other graphics parmeters.
 #' @export
 #' @seealso fixPredict
-CIplot.ci <- function(x, fit, ci, first=FALSE,xlab='',ylab='',xlim=NULL,ylim=NULL,
+CIplot <- function(x, fit, ci, first=FALSE,xlab='',ylab='',xlim=NULL,ylim=NULL,
                       col=1,af=0.3,border=NA,lwd=1.5,lty=1,density=40,angle=45,xaxt='n',yaxt='n',
                       lwd.ci=1,lty.ci=1,...){
   y <- fit

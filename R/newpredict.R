@@ -973,14 +973,14 @@ collect.model.info<-function(object){
 #' 
 #' # calculate the biased and the unbiased predictions 
 #' # on the response scale
-#' cYA <- fixPredict(object=fit1,
+#' cYA <- marPredict(object=fit1,
 #'                   newdata=as.data.frame(newdata1),
 #'                   type='response',
 #'                   ci.fit = TRUE,
 #'                   method = 'at.each.cat')
 #' 
 #' # using overall method
-#' cYB <- fixPredict(object=fit1,
+#' cYB <- marPredict(object=fit1,
 #'                   newdata=as.data.frame(newdata1),
 #'                   type='response',
 #'                   ci.fit = TRUE,
@@ -1027,7 +1027,7 @@ collect.model.info<-function(object){
 #' 
 #' # making the predictions
 #' newdata2 <- expand.grid(C1=seq(-0.5,0.5,0.05), X1=levels(data1$X1))
-#' cY2 <- fixPredict(fit2, newdata2, type = 'response', ci.fit = TRUE)
+#' cY2 <- marPredict(fit2, newdata2, type = 'response', ci.fit = TRUE)
 #' 
 #' # plotting the results
 #' ina <- which(newdata2$X1=='a'); inb <- which(newdata2$X1=='b')
@@ -1072,7 +1072,7 @@ collect.model.info<-function(object){
 #'       type='p', cex=0.2, col = rgb(0,180,0,maxColorValue = 255))
 #' 
 #' fit3 <- glmer(Y ~ X1 + C1 + (1|ID), family=binomial(), data=data3, nAGQ = 20)
-#' cY3 <- fixPredict(fit3, newdata3, type = 'response', ci.fit = TRUE)
+#' cY3 <- marPredict(fit3, newdata3, type = 'response', ci.fit = TRUE)
 #' 
 #' newdata3 <- expand.grid(C1=seq(-0.5,0.5,0.05), X1=levels(data3$X1))
 #' 
@@ -1104,7 +1104,7 @@ collect.model.info<-function(object){
 #' #dontrun
 #' #cat(1)
 #' }
-fixPredict<-function(object,
+marPredict<-function(object,
                      newdata,
                      type = c('link','response'),
                      ci.fit = TRUE,

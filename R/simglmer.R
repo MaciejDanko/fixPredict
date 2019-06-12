@@ -116,3 +116,5 @@ sim_glmer_data <-
   return(data)
 }
 
+
+#lme4:::simulate()
