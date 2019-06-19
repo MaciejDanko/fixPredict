@@ -7,8 +7,9 @@
 marPredict(object, newdata, type = c("link", "response"),
   ci.fit = TRUE, alpha = 0.95, n.sims = 1000,
   average.missing = FALSE, sim.missing = TRUE, sim.RE = FALSE,
-  method = c("at.each.cat", "overall"), use.offset = TRUE,
-  as.rate = FALSE, return.median = FALSE, return.boot = FALSE)
+  approx.RE = FALSE, method = c("at.each.cat", "overall"),
+  use.offset = TRUE, as.rate = FALSE, return.median = FALSE,
+  return.boot = FALSE)
 }
 \arguments{
 \item{object}{a object of class inherited from: \code{\link{glmer}{lme4}},
@@ -30,6 +31,8 @@ see also \code{\link{predict.glm}{stats}}.}
 \item{sim.missing}{a logical indicating if to simulate uncertenity of the missing variables via the bootstrap method. Miningfull only when \code{average.missing} is \code{TRUE}.}
 
 \item{sim.RE}{a logical indicating if to simulate uncertenity of the random effects via the bootstrap method.}
+
+\item{approx.RE}{logical indicating if to use infinite-subjects approximation for random efect contribution to the marginalized model predictions.}
 
 \item{method}{a method of averaging over random effects.
 The default "\code{at.each.cat}" estimate avarage random effects at each cobination of levels for categorical variable(s) present in the \code{newdata};
@@ -54,12 +57,13 @@ a list with model predicitions with the following components:
 Unbiased predictions for fixed variables
 }
 \examples{
+\donttest{
 #############################################################################
 # EXAMPLE 1
 #############################################################################
 
 set.seed(3)
-data1 <- sim_glmer_poisson(formula = ~ X1 * X2, theta = 0.75,
+data1 <- sim_glmer_data(formula = ~ X1 * X2, theta = 0.75,
                          coef= c(5, 0.5, 0.7, 0.5, -0.7, 0.2, 0.3, 0.3, 0.2),
                          n.levels=c(3,3), n.ID = 100, n.pop=1e3)
 
@@ -112,7 +116,7 @@ legend('topleft',c('Simulated data','RE excluded',
        fill=c(gray.colors(3)[2],NA,NA,NA),
        col=c(NA,2,'darkorange',rgb(0,180,0,maxColorValue = 255)), 
        bty='n', border=c('black',NA,NA,NA))
-\donttest{        
+        
 #############################################################################
 # EXAMPLE 2
 #############################################################################

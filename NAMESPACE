@@ -2,7 +2,6 @@
 
 export(CIplot)
 export(marPredict)
-export(sim_glmer_data)
 import(MASS)
 import(gamm4)
 import(lme4)

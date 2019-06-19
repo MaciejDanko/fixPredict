@@ -93,6 +93,7 @@ getRE.lme4 <- function(object, RElist = ranef(object), frame = object@frame){
 
 #' @noRd
 #' @keywords internal
+#' @importFrom MASS mvrnorm
 simRE.lme4<-function(n.sims, object, frame = object@frame){
   RElist = ranef(object, condVar = TRUE)
   REnames <- names(ngrps(object))
@@ -107,11 +108,10 @@ simRE.lme4<-function(n.sims, object, frame = object@frame){
     
     if (ncol(REmean)>1) {
       newMeans <- lapply(seq_len(nrow(REmean)), 
-                         function(k) as.matrix(mvtnorm::rmvnorm(
+                         function(k) as.matrix(MASS::mvrnorm(
                            n = n.sims, 
-                           mean = REmean[k,], 
-                           sigma = REvariance[,,k], 
-                           method = "chol")))
+                           mu = REmean[k,], 
+                           Sigma = REvariance[,,k])))
     } else {
       newMeans <- lapply(seq_len(nrow(REmean)), 
                          function(k) as.matrix(stats::rnorm(
@@ -249,6 +249,13 @@ proc.nlme<-function(object){
   get.avg.missing <- function(object, newdata, coef=object$coefficients$fixed) 
     .get.avg.missing(object, newdata, coef)
   get.miss.vars <- .get.miss.vars
+  get.sum.var<-function(object, include.resid=FALSE){
+    g <- VarCorr(object)[,1]
+    if (!include.resid) g <- g[names(g)!="Residual"]
+    g <- suppressWarnings(as.numeric(g))
+    g <- g[!is.na(g)]
+    sum(g)
+  }
   list(categorical = categorical,
        term.labels = term.labels,
        offset = offset,
@@ -270,6 +277,7 @@ proc.nlme<-function(object){
        simRE = simRE,
        get.avg.missing = get.avg.missing,
        get.miss.vars = get.miss.vars, 
+       get.sum.var = get.sum.var,
        getMM = getMM)
 }
 
@@ -337,6 +345,13 @@ proc.gamm<-function(object){
       .get.miss.vars(object$gam, newdata)
     getMM <- function(...) stop(msgList(4),call. = FALSE)
     lformula<-length(mgcv::formula.gam(object$gam))
+    get.sum.var<-function(object, include.resid=FALSE){
+      g <- VarCorr(object$lme)[,1]
+      if (!include.resid) g <- g[names(g)!="Residual"]
+      g <- suppressWarnings(as.numeric(g))
+      g <- g[!is.na(g)]
+      sum(g)
+    }
     list(categorical = categorical,
          term.labels = term.labels,
          offset = offset,
@@ -358,6 +373,7 @@ proc.gamm<-function(object){
          simRE = simRE,
          get.avg.missing = get.avg.missing,
          get.miss.vars = get.miss.vars, 
+         get.sum.var = get.sum.var,
          getMM = getMM)
 }
 
@@ -421,6 +437,7 @@ proc.gam <- function(object){
   get.miss.vars <- function(object, newdata) 
     .get.miss.vars(object, newdata)
   getMM <- function(...) stop(msgList(4),call. = FALSE)
+  get.sum.var <- function(...) NULL
   lformula<-length(mgcv::formula.gam(object))
   list(categorical = categorical,
        term.labels = term.labels,
@@ -443,6 +460,7 @@ proc.gam <- function(object){
        simRE = simRE,
        get.avg.missing = get.avg.missing,
        get.miss.vars = get.miss.vars, 
+       get.sum.var = get.sum.var,
        getMM = getMM)
 }
   
@@ -514,6 +532,12 @@ proc.gamm4<-function(object){
   get.miss.vars <- function(object, newdata) 
     .get.miss.vars(object$gam, newdata)
   getMM <- function(...) stop(msgList(9),call. = FALSE)
+  get.sum.var<-function(object,include.resid=FALSE) {
+    varcov <- VarCorr(object$mar)
+    g <- sum(unlist(lapply(varcov,attr, which='stddev'))^2)
+    if (include.resid) g <- g + attr(varcov,"sc")
+    g
+  }
   list(categorical = categorical,
        term.labels = term.labels,
        offset = offset,
@@ -535,6 +559,7 @@ proc.gamm4<-function(object){
        simRE = simRE,
        get.avg.missing = get.avg.missing,
        get.miss.vars = get.miss.vars, 
+       get.sum.var = get.sum.var,
        getMM = getMM)
 }
 
@@ -596,6 +621,12 @@ proc.lme4<-function(object){
   get.avg.missing <- function(object, newdata, coef=fixef(object)) 
     .get.avg.missing(object, newdata, coef)
   get.miss.vars <- .get.miss.vars
+  get.sum.var<-function(object,include.resid=FALSE) {
+    varcov <- VarCorr(object)
+    g <- sum(unlist(lapply(varcov,attr, which='stddev'))^2)
+    if (include.resid) g <- g + attr(varcov,"sc")
+    g
+  }  
   list(categorical = categorical,
        term.labels = term.labels,
        offset = offset,
@@ -617,6 +648,7 @@ proc.lme4<-function(object){
        simRE = simRE,
        get.avg.missing = get.avg.missing,
        get.miss.vars = get.miss.vars, 
+       get.sum.var = get.sum.var,
        getMM = getMM)
 }
 
@@ -677,6 +709,7 @@ proc.glmnb<-function(object){
   get.avg.missing <- function(object, newdata, coefi=stats::coef(object)) 
     .get.avg.missing(object, newdata, coefi)
   get.miss.vars <- .get.miss.vars
+  get.sum.var <- function(...) NULL
   list(categorical = categorical,
        term.labels = term.labels,
        offset = offset,
@@ -698,6 +731,7 @@ proc.glmnb<-function(object){
        simRE = simRE,
        get.avg.missing = get.avg.missing,
        get.miss.vars = get.miss.vars, 
+       get.sum.var = get.sum.var,
        getMM = getMM)
 }
 
@@ -933,6 +967,7 @@ collect.model.info<-function(object){
 #' @param average.missing a logical indicating if to perform population averaging over the variables missing from the \code{newdata}.
 #' @param sim.missing a logical indicating if to simulate uncertenity of the missing variables via the bootstrap method. Miningfull only when \code{average.missing} is \code{TRUE}.
 #' @param sim.RE a logical indicating if to simulate uncertenity of the random effects via the bootstrap method. 
+#' @param approx.RE logical indicating if to use infinite-subjects approximation for random efect contribution to the marginalized model predictions.  
 #' @param method a method of averaging over random effects. 
 #' The default "\code{at.each.cat}" estimate avarage random effects at each cobination of levels for categorical variable(s) present in the \code{newdata}; 
 #' the alternative "\code{overall}" estimate average random effects for total population.
@@ -952,12 +987,13 @@ collect.model.info<-function(object){
 #' @export
 #' @author Maciej J. Danko
 #' @examples
+#' \donttest{
 #' #############################################################################
 #' # EXAMPLE 1
 #' #############################################################################
 #' 
 #' set.seed(3)
-#' data1 <- sim_glmer_poisson(formula = ~ X1 * X2, theta = 0.75,
+#' data1 <- sim_glmer_data(formula = ~ X1 * X2, theta = 0.75,
 #'                          coef= c(5, 0.5, 0.7, 0.5, -0.7, 0.2, 0.3, 0.3, 0.2),
 #'                          n.levels=c(3,3), n.ID = 100, n.pop=1e3)
 #' 
@@ -1010,7 +1046,7 @@ collect.model.info<-function(object){
 #'        fill=c(gray.colors(3)[2],NA,NA,NA),
 #'        col=c(NA,2,'darkorange',rgb(0,180,0,maxColorValue = 255)), 
 #'        bty='n', border=c('black',NA,NA,NA))
-#' \donttest{        
+#'         
 #' #############################################################################
 #' # EXAMPLE 2
 #' #############################################################################
@@ -1113,6 +1149,7 @@ marPredict<-function(object,
                      average.missing = FALSE, 
                      sim.missing = TRUE,
                      sim.RE = FALSE,
+                     approx.RE = FALSE,
                      method = c('at.each.cat','overall'),
                      use.offset = TRUE,
                      as.rate = FALSE, 
@@ -1166,8 +1203,9 @@ marPredict<-function(object,
     offset <- rep(0, N)
   }
   objsup$offset <- offset
-  
   #if (as.rate && any(offset<=0)) stop(msgList(24),call.=FALSE)
+  
+  if (approx.RE && sim.RE) stop(msgList(28), call. = FALSE)
   
   if (length(newdata)){
     if (method == 'at.each.cat') {
@@ -1176,13 +1214,18 @@ marPredict<-function(object,
       nd <- NULL 
     } else stop(msgList(16), call. = FALSE)
     
-    if (length(objsup$RE)){
-      reff<- .predict.classify(objsup, objsup$RE, nd)
-      reff.data<-attr(reff,'data')
-      if (!length(reff.data)) reff<-list(reff)
+    if (approx.RE) {
+      reff <- list(objsup$get.sum.var(object)/2)
+      #reff.data <- NULL
     } else {
-      reff <- NULL
-      reff.data <- NULL
+      if (length(objsup$RE)){
+        reff<- .predict.classify(objsup, objsup$RE, nd)
+        # reff.data<-attr(reff,'data')
+        if (!length(attr(reff,'data'))) reff<-list(reff)
+      } else {
+        reff <- NULL
+       # reff.data <- NULL
+      }
     }
     
     if (average.missing) {
@@ -1202,12 +1245,17 @@ marPredict<-function(object,
     }
     
   } else {
-    if (length(objsup$RE)){
-      reff<- .predict.classify(objsup, objsup$RE)
-      reff.data <- NULL
+    if (approx.RE) {
+      reff <- list(objsup$get.sum.var(object)/2)
+      #reff.data <- NULL
     } else {
-      reff <- NULL
-      reff.data <- NULL
+      if (length(objsup$RE)){
+        reff<- .predict.classify(objsup, objsup$RE)
+       # reff.data <- NULL
+      } else {
+        reff <- NULL
+      #  reff.data <- NULL
+      }
     }
     coffs <- list(offset)
   }
