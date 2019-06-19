@@ -9,5 +9,6 @@
 ^appveyor\.yml$
 ^cran-comments.md
 ^paper$
+^data-raw$
 ^data_test2.R$
 ^THINGS.TO.DO$

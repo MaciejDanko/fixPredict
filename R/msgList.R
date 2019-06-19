@@ -27,7 +27,8 @@ msgList <- function(x) {
           'The fitted random effect formula is currently not supported in the bootstrap computations.', #24
           'Bootstrapping random effects is supported only for merMod objects (lme4 package).', #25
           'The conditional variance cannot be retrived from the model.', #26
-          'Bootstrapping random effects is currently not supported for gam objects (gamm4 package).' #27
+          'Bootstrapping random effects is currently not supported for gam objects (gamm4 package).', #27
+          'Either "sim.RE" or "approx.RE" can be set TRUE.' #28
           )
   tmp[x]
 }
