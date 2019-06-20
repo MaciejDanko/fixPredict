@@ -188,3 +188,29 @@ data3 <- sim_glmer_data(formula = ~ X1, theta = 0.9,
 
 marPredict_e3 <- data3 
 usethis::use_data(marPredict_e3, overwrite = TRUE)
+
+################################################################################
+#  Artificial random intercept data set # 4
+################################################################################
+set.seed(5)
+data4 <- sim_glmer_data(formula = ~ X1 * X2, theta = 0.75,
+                        coef= c(5, 0.9, 0.7, 0.4,-0.2, -0.7, 0, 0, 0, 0, 0,-1.1),
+                        n.levels=c(4,3), n.ID = 100, n.pop=1e3)
+# generating random exposures
+data4$exposures <- exp(rnorm(1e3,5))
+
+marPredict_e4 <- data4 
+usethis::use_data(marPredict_e4, overwrite = TRUE)
+
+################################################################################
+#  Artificial random intercept data set # 5
+################################################################################
+
+set.seed(5)
+data5 <- sim_glmer_data(formula = ~ X1 * X2, theta = 0.75,
+                        coef= c(3.5, 0.5, 0.7, 0.5, -0.7, 0.2, 0.3, 0.3, 0.2),
+                        coef.c = -1.5,
+                        n.levels=c(3,3), n.ID = 20, n.pop=1e3)
+
+marPredict_e5 <- data5 
+usethis::use_data(marPredict_e5, overwrite = TRUE)
