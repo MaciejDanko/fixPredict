@@ -973,8 +973,8 @@ collect.model.info<-function(object){
 #' the alternative "\code{overall}" estimate average random effects for total population.
 #' @param use.offset a logical indicating if to include averaged offset into model predictions.
 #' @param as.rate a logical indicating if to return predicitions as rates. Setting this \code{TRUE} makes sense only for count models (e.g., Poisson, neg.bin). 
-#' @param return.median a logical indicating if to return median for bootstrap percentile method.
-#' @param return.boot a logical indicating if to return bootstraped matrices.
+#' @param extended.boot.info a logical indicating if to return median for bootstrap percentile method.
+# @param return.boot a logical indicating if to return bootstraped matrices.
 #' 
 #' @return a list with model predicitions with the following components:
 #'  \item{fit}{ a list with \code{biased} (random effects excluded) and \code{unbiased}(averaged random effects included) predicitions.}
@@ -987,25 +987,20 @@ collect.model.info<-function(object){
 #' @export
 #' @author Maciej J. Danko
 #' @examples
-#' \donttest{
 #' #############################################################################
 #' # EXAMPLE 1
 #' #############################################################################
 #' 
-#' set.seed(3)
-#' data1 <- sim_glmer_data(formula = ~ X1 * X2, theta = 0.75,
-#'                          coef= c(5, 0.5, 0.7, 0.5, -0.7, 0.2, 0.3, 0.3, 0.2),
-#'                          n.levels=c(3,3), n.ID = 100, n.pop=1e3)
+#' fit1 <- lme4::glmer(Y~X1*X2+(1|ID),family=poisson(), data=marPredict_e1)
 #' 
-#' fit1 <- lme4::glmer(Y~X1*X2+(1|ID),family=poisson(), data=data1)
-#' 
-#' DATA <- with(data1, tapply(Y, data.frame(X1=X1,X2=X2), mean))
+#' DATA <- with(marPredict_e1, tapply(Y, data.frame(X1=X1,X2=X2), mean))
 #' posX <- as.vector(barplot(DATA,beside=TRUE,ylim=c(0,1050),
 #'                           ylab='Mean counts (response scale)'))
 #' text(posX,-40,rep(rownames(DATA),3),xpd=TRUE)
 #' axis(1,at=c(-5,100),labels = FALSE)
 #' 
-#' newdata1 <- expand.grid(X1=levels(data1$X1), X2=levels(data1$X2))
+#' newdata1 <- expand.grid(X1=levels(marPredict_e1$X1), 
+#'                         X2=levels(marPredict_e1$X2))
 #' 
 #' # calculate the biased and the unbiased predictions 
 #' # on the response scale
@@ -1050,38 +1045,29 @@ collect.model.info<-function(object){
 #' #############################################################################
 #' # EXAMPLE 2
 #' #############################################################################
-#' data2 <- sim_glmer_data(formula = ~ X1, theta = 0.75,
-#'                         coef= c(3, 0.5, -0.7),
-#'                         coef.c = 5,
-#'                         func.c = function(C1, coef.c) 
-#'                           abs(C1)^1.5 * coef.c - 1.5,
-#'                         n.levels=3, n.ID = 100, n.pop=1e3)
 #' 
-#' # fitting the model
 #' fit2 <- gamm4::gamm4(Y~ X1 + s(C1), random = ~(1|ID), 
-#'                      family = poisson(), data = data2)
+#'                      family = poisson(), data = marPredict_e2)
 #' 
-#' # making the predictions
-#' newdata2 <- expand.grid(C1=seq(-0.5,0.5,0.05), X1=levels(data1$X1))
+#' newdata2 <- expand.grid(C1=seq(-0.5,0.5,0.05), X1=levels(marPredict_e2$X1))
 #' cY2 <- marPredict(fit2, newdata2, type = 'response', ci.fit = TRUE)
 #' 
-#' # plotting the results
 #' ina <- which(newdata2$X1=='a'); inb <- which(newdata2$X1=='b')
 #' inc <- which(newdata2$X1=='c')
 #' xa <- newdata2$C1[ina]; xb <- newdata2$C1[inb]; xc <- newdata2$C1[inc]
 #' 
-#' CIplot.ci(xa, cY2$fit$unbiased[ina], cY2$CI.fit$unbiased[ina,],
+#' CIplot(xa, cY2$fit$unbiased[ina], cY2$CI.fit$unbiased[ina,],
 #'           density=40, angle=0,first = TRUE,ylim=c(0,60),col='blue',lwd=4,
 #'           xaxt='s', yaxt='s', ylab='Mean counts (response scale)', xlab='C1')
-#' CIplot.ci(xa, cY2$fit$unbiased[inb], cY2$CI.fit$unbiased[inb,],
+#' CIplot(xa, cY2$fit$unbiased[inb], cY2$CI.fit$unbiased[inb,],
 #'           density=40, angle=0,col='red',lwd=4)
-#' CIplot.ci(xa, cY2$fit$unbiased[inc], cY2$CI.fit$unbiased[inc,],
+#' CIplot(xa, cY2$fit$unbiased[inc], cY2$CI.fit$unbiased[inc,],
 #'           density=40, angle=0,col=rgb(0,180,0,maxColorValue = 255),lwd=4)
-#' CIplot.ci(xa, cY2$fit$biased[ina], cY2$CI.fit$biased[ina,],
+#' CIplot(xa, cY2$fit$biased[ina], cY2$CI.fit$biased[ina,],
 #'           density=20, angle=90,col='blue',lty=2)
-#' CIplot.ci(xa, cY2$fit$biased[inb], cY2$CI.fit$biased[inb,],
+#' CIplot(xa, cY2$fit$biased[inb], cY2$CI.fit$biased[inb,],
 #'           density=20, angle=90,col='red',lty=2)
-#' CIplot.ci(xa, cY2$fit$biased[inc], cY2$CI.fit$biased[inc,],
+#' CIplot(xa, cY2$fit$biased[inc], cY2$CI.fit$biased[inc,],
 #'           density=20, angle=90,col=rgb(0,180,0,maxColorValue = 255),lty=2)
 #' 
 #' legend('top',c('biased','unbiased','a','b','c'), lty=c(2,1,1,1,1),
@@ -1091,44 +1077,42 @@ collect.model.info<-function(object){
 #' #############################################################################
 #' # EXAMPLE 3
 #' #############################################################################
-#' data3 <- sim_glmer_data(formula = ~ X1, theta = 1.1,
-#'                         coef= c(0.5, 1.5, -1.25),
-#'                         coef.c = 2, s=0.3,
-#'                         func.c = function(C1, coef.c) C1* coef.c,
-#'                         n.levels=3, n.ID = 100, n.pop=1e3,
-#'                         family='binomial')
 #' 
-#' ina <- which(data3$X1=='a'); inb <- which(data3$X1=='b')
-#' inc <- which(data3$X1=='c')
-#' plot(data3$C1[ina],binomial()$linkinv(data3$linkY)[ina],
+#' ina <- which(marPredict_e3$X1=='a'); inb <- which(marPredict_e3$X1=='b')
+#' inc <- which(marPredict_e3$X1=='c')
+#' plot(marPredict_e3$C1[ina],binomial()$linkinv(marPredict_e3$linkY)[ina],
 #'      ylim=c(0,1), cex=0.2, col = 'blue')
-#' lines(data3$C1[inb],binomial()$linkinv(data3$linkY)[inb],
+#' lines(marPredict_e3$C1[inb],binomial()$linkinv(marPredict_e3$linkY)[inb],
 #'       type='p', cex=0.2, col = 'red')
-#' lines(data3$C1[inc],binomial()$linkinv(data3$linkY)[inc],
+#' lines(marPredict_e3$C1[inc],binomial()$linkinv(marPredict_e3$linkY)[inc],
 #'       type='p', cex=0.2, col = rgb(0,180,0,maxColorValue = 255))
 #' 
-#' fit3 <- glmer(Y ~ X1 + C1 + (1|ID), family=binomial(), data=data3, nAGQ = 20)
+#' fit3 <- glmer(Y ~ X1 + C1 + (1|ID), family=binomial(), 
+#'               data=marPredict_e3, nAGQ = 20)
 #' cY3 <- marPredict(fit3, newdata3, type = 'response', ci.fit = TRUE)
 #' 
-#' newdata3 <- expand.grid(C1=seq(-0.5,0.5,0.05), X1=levels(data3$X1))
+#' newdata3 <- expand.grid(C1=seq(-0.5,0.5,0.05), X1=levels(marPredict_e3$X1))
 #' 
 #' ina <- which(newdata3$X1=='a'); inb <- which(newdata3$X1=='b')
 #' inc <- which(newdata3$X1=='c')
 #' xa <- newdata3$C1[ina]; xb <- newdata3$C1[inb]; xc <- newdata3$C1[inc]
 #' 
-#' CIplot.ci(xa, cY3$fit$unbiased[ina], cY3$CI.fit$unbiased[ina,],
+#' CIplot(xa, cY3$fit$unbiased[ina], cY3$CI.fit$unbiased[ina,],
 #'           density=40, angle=0,first = TRUE,ylim=c(0,1),col='blue',lwd=4,
-#'           xaxt='s', yaxt='s', ylab='Probabilyty (response scale)', xlab='C1')
-#' CIplot.ci(xa, cY3$fit$unbiased[inb], cY3$CI.fit$unbiased[inb,],
+#'           xaxt='s', yaxt='s', ylab='Probabilyty (response scale)', 
+#'           xlab='C1')
+#' CIplot(xa, cY3$fit$unbiased[inb], cY3$CI.fit$unbiased[inb,],
 #'           density=40, angle=0,col='red',lwd=4)
-#' CIplot.ci(xa, cY3$fit$unbiased[inc], cY3$CI.fit$unbiased[inc,],
-#'           density=40, angle=0,col=rgb(0,180,0,maxColorValue = 255),lwd=4)
-#' CIplot.ci(xa, cY3$fit$biased[ina], cY3$CI.fit$biased[ina,],
+#' CIplot(xa, cY3$fit$unbiased[inc], cY3$CI.fit$unbiased[inc,],
+#'           density=40, angle=0,col=rgb(0,180,0,maxColorValue = 255),
+#'           lwd=4)
+#' CIplot(xa, cY3$fit$biased[ina], cY3$CI.fit$biased[ina,],
 #'           density=20, angle=90,col='blue',lty=2)
-#' CIplot.ci(xa, cY3$fit$biased[inb], cY3$CI.fit$biased[inb,],
+#' CIplot(xa, cY3$fit$biased[inb], cY3$CI.fit$biased[inb,],
 #'           density=20, angle=90,col='red',lty=2)
-#' CIplot.ci(xa, cY3$fit$biased[inc], cY3$CI.fit$biased[inc,],
-#'           density=20, angle=90,col=rgb(0,180,0,maxColorValue = 255),lty=2)
+#' CIplot(xa, cY3$fit$biased[inc], cY3$CI.fit$biased[inc,],
+#'           density=20, angle=90,col=rgb(0,180,0,maxColorValue = 255), 
+#'           lty=2)
 #' 
 #' legend('top',c('Biased pred. response', 'Unbiased pred. response',
 #'                'a','b','c'), lty=c(2,1,1,1,1), lwd=c(1,4,2,2,2), 
@@ -1139,7 +1123,9 @@ collect.model.info<-function(object){
 #' #############################################################################
 #' #dontrun
 #' #cat(1)
-#' }
+#' #donttest
+#' cat(1)
+#' #
 marPredict<-function(object,
                      newdata,
                      type = c('link','response'),
@@ -1153,14 +1139,13 @@ marPredict<-function(object,
                      method = c('at.each.cat','overall'),
                      use.offset = TRUE,
                      as.rate = FALSE, 
-                     return.median = FALSE,
-                     return.boot = FALSE){
+                     extended.boot.info = FALSE){
   
   objsup <- collect.model.info(object)
   method <- tolower(method[1])
   type <- tolower(type[1])
   CIlo <- (1 - alpha)/2
-  boot <- NULL
+  # boot <- NULL
   fixmiss <- NULL
   # if (include.rnd.error && simtheta) thetas <- rtheta 
   if (objsup$lformula!=3) stop(msgList(20),call.=FALSE)
@@ -1270,11 +1255,14 @@ marPredict<-function(object,
                                as.rate, reff, fixmiss, linkinv, linkfun, 
                                sim.missing & average.missing, method, sim.RE)    
     
-    if (return.median) {
+    if (extended.boot.info) {
       CI_fixed_biased <- t(apply(fitCI$biased, 1, stats::quantile, 
-                                 probs=c(CIlo, 1-CIlo, 0.5)))
+                                 probs=c(CIlo, 1-CIlo, 0.5, 0.25, 0.75)))
       CI_fixed_unbiased <- t(apply(fitCI$unbiased, 1, stats::quantile,
-                                   probs=c(CIlo, 1-CIlo, 0.5)))
+                                   probs=c(CIlo, 1-CIlo, 0.5, 0.25, 0.75)))
+      CI_fixed_biased <- cbind(CI_fixed_biased, mean=apply(fitCI$biased, 1, mean))
+      CI_fixed_unbiased <- cbind(CI_fixed_unbiased, mean=apply(fitCI$unbiased, 1, mean))
+      
     } else {
       CI_fixed_biased <- t(apply(fitCI$biased, 1, stats::quantile,
                                  probs=c(CIlo, 1-CIlo)))
@@ -1284,8 +1272,8 @@ marPredict<-function(object,
     CI.fit <- list(biased=CI_fixed_biased,
                    unbiased=CI_fixed_unbiased)
     
-    if (return.boot) boot <- list(biased = CI_fixed_biased,
-                                  unbiased = CI_fixed_unbiased)
+    # if (return.boot) boot <- list(biased = CI_fixed_biased,
+    #                               unbiased = CI_fixed_unbiased)
   } else CI.fit <- NULL
   
   return(list(fit = list(biased = fit$biased, 
@@ -1299,10 +1287,10 @@ marPredict<-function(object,
                            method = method,
                            use.offset = use.offset,
                            as.rate = as.rate, 
-                           return.median = return.median,
-                           return.boot = return.boot),
-              CI.fit = CI.fit,
-              boot = boot,
-              offset = offset))
+                           extended.boot.info = extended.boot.info),
+              CI.fit = CI.fit #,
+              #boot = boot,
+              #offset = offset
+              ))
 }
 

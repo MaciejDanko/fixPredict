@@ -1,7 +1,7 @@
 Package: marPredict
 Type: Package
 Title: Marginal predictions for generalized mixed effect models
-Version: 0.0.2
+Version: 0.0.3
 Depends: R (>= 3.4.0)
 Imports: gamm4, mgcv, grDevices, lme4, MASS, stats
 Authors@R: person("Maciej J.", "Danko", role = c("aut", "cre"), 
